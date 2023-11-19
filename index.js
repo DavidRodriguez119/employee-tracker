@@ -53,8 +53,11 @@ const displayOptions = () => {
 const allDepartments = () => {
     connection.query(
         `SELECT * FROM departments`, (err, results) => {
-            console.log(err);
-            console.table(results, [`id`, `name`]);
+            if (err) {
+                console.log(err);
+            } else {
+                console.table(results);
+            }           
             // go back to the main menu
             displayOptions();
         }
@@ -65,8 +68,11 @@ const allDepartments = () => {
 const allRoles = () => {
     connection.query(
         `SELECT role.id, role.title, role.salary, departments.name AS department FROM role LEFT JOIN departments ON role.department_id = departments.id`, (err, results) => {
-            console.log(err);
-            console.table(results);
+            if (err) {
+                console.log(err);
+            } else {
+                console.table(results);
+            }           
             // go back to the main menu
             displayOptions();
         }
@@ -83,8 +89,11 @@ const allEmployees = () => {
             FROM employee e LEFT JOIN role ON e.role_id = role.id
             LEFT JOIN departments ON role.department_id = departments.id
             LEFT JOIN employee m ON e.manager_id = m.id`, (err, results) => {
-            console.log(err);
-            console.table(results);
+            if (err) {
+                console.log(err);
+            } else {
+                console.table(results);
+            }           
             // go back to the main menu
             displayOptions();
         }
@@ -93,16 +102,86 @@ const allEmployees = () => {
 
 // Add a department
 const addDepartment = () => {
-    
-    // go back to the main menu
-    displayOptions();
+    // ask the user for the name of the new department
+    inquirer.prompt({
+        name: `newDepartment`,
+        message: `What is the name of the new department?`,
+        type: `input`,
+    }).then((ans) => {
+        // add the new departments 
+        connection.query(
+            `INSERT INTO departments (name) VALUES (?)`,
+            [ans.newDepartment],
+            (err) => {
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log(`Added ${ans.newDepartment} to the database :)`);
+                } 
+                // go back to the main menu
+                displayOptions();               
+            }
+        )
+    })
 };
 
 // Add a role
 const addRole = () => {
+    let currentDepartments;
+    let selectedId;
+    // save the current departments into a variable
+    connection.query(
+        `SELECT * FROM departments`, (err, result) => {
+            if (err) {
+                console.log(err);
+            }
+            currentDepartments = result;
+
+            const departmentNames = currentDepartments.map(item => item.name)
+
+            // ask the user for the information of the new role
+            inquirer.prompt([
+                {
+                    name: `newRole`,
+                    message: `What is the name of the new role?`,
+                    type: `input`,
+                },
+                {
+                    name: `salary`,
+                    message: `What is the salary of the new role?`,
+                    type: `input`,
+                },
+                {
+                    name: `departments`,
+                    message: `Which department does the role belong to?`,
+                    type: `list`,
+                    choices: departmentNames,
+                }
+            ]).then((ans) => {
+                // get the id of the department that the user selected
+                for (let i = 0; i < departmentNames.length; i++) {
+                    if (departmentNames[i] === currentDepartments[i].name){
+                        selectedId = currentDepartments[i].id
+                    };
+                };
+                // add the new departments 
+                connection.query(
+                    `INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)`,
+                    [ans.newRole, ans.salary, selectedId],
+                    (err) => {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log(`Added ${ans.newRole} to the database :)`);
+                        }; 
+                        // go back to the main menu
+                        displayOptions();               
+                    }
+                )
+            })
+        }        
+    );    
     
-    // go back to the main menu
-    displayOptions();
 };
 
 // Add an employee
