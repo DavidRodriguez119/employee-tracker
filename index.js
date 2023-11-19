@@ -54,7 +54,7 @@ const allDepartments = () => {
     connection.query(
         `SELECT * FROM departments`, (err, results) => {
             console.log(err);
-            console.table(results);
+            console.table(results, [`id`, `name`]);
             // go back to the main menu
             displayOptions();
         }
@@ -76,7 +76,13 @@ const allRoles = () => {
 // View all Employees
 const allEmployees = () => {
     connection.query(
-        `SELECT * FROM employee`, (err, results) => {
+        `SELECT e.id, e.first_name, e.last_name, 
+            departments.name AS department, 
+            role.title, role.salary, 
+            CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+            FROM employee e LEFT JOIN role ON e.role_id = role.id
+            LEFT JOIN departments ON role.department_id = departments.id
+            LEFT JOIN employee m ON e.manager_id = m.id`, (err, results) => {
             console.log(err);
             console.table(results);
             // go back to the main menu
