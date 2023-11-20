@@ -160,7 +160,7 @@ const addRole = () => {
             ]).then((ans) => {
                 // get the id of the department that the user selected
                 for (let i = 0; i < departmentNames.length; i++) {
-                    if (departmentNames[i] === currentDepartments[i].name){
+                    if (ans.departments === currentDepartments[i].name){
                         selectedId = currentDepartments[i].id
                     };
                 };
@@ -186,9 +186,91 @@ const addRole = () => {
 
 // Add an employee
 const addEmployee = () => {
-    
-    // go back to the main menu
-    displayOptions();
+    let currentRoles;
+    let currentManagers;
+    let roleId;
+    let managerId;
+    // save the current roles into a variable
+    connection.query(
+        `SELECT role.id, role.title FROM role`, (err, result) => {
+            if (err) {
+                console.log(err);
+            }
+            currentRoles = result;
+
+            const roleNames = currentRoles.map(item => item.title)
+            
+            connection.query(
+                `SELECT employee.id, CONCAT(first_name, ' ', last_name) AS manager_name FROM employee WHERE manager_id IS NULL`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    currentManagers = result;
+
+                    const managerNames = currentManagers.map(item => item.manager_name) 
+                    
+                    managerNames.push(`None`);
+
+                    // ask the user for the information of the new employee
+                    inquirer.prompt([
+                        {
+                            name: `firstName`,
+                            message: `What is the employee's first name?`,
+                            type: `input`,
+                        },
+                        {
+                            name: `lastName`,
+                            message: `What is the employee's last name?`,
+                            type: `input`,
+                        },
+                        {
+                            name: `role`,
+                            message: `What is the employee's role?`,
+                            type: `list`,
+                            choices: roleNames,
+                        },
+                        {
+                            name: `manager`,
+                            message: `Who is the employee's manager?`,
+                            type: `list`,
+                            choices: managerNames,
+                        }
+                    ]).then((ans) => {
+                        // get the id of the role that the user selected
+                        for (let i = 0; i < currentRoles.length; i++) {
+                            if (ans.role === currentRoles[i].title){
+                                roleId = currentRoles[i].id
+                            };
+                        };
+
+                        // get the id of the manager that the user selected
+                        for (let i = 0; i < currentManagers.length; i++) {
+                            if (ans.manager == currentManagers[i].manager_name){
+                                managerId = currentManagers[i].id
+                            } else {
+                                managerId = null
+                            }
+                        };
+                        
+                        // add the new departments 
+                        connection.query(
+                            `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`,
+                            [ans.firstName, ans.lastName, roleId, managerId],
+                            (err) => {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    console.log(`Added ${ans.firstName} ${ans.lastName} to the database :)`);
+                                }; 
+                                // go back to the main menu
+                                displayOptions();               
+                            }
+                        )
+                    })
+                }
+            )            
+        }        
+    );    
 };
 
 // Add an employee's role
