@@ -275,9 +275,73 @@ const addEmployee = () => {
 
 // Add an employee's role
 const updateRole = () => {
-    
-    // go back to the main menu
-    displayOptions();
+    let currentRoles;
+    let currentEmployees;
+    let roleId;
+    let employeeId;
+    connection.query(
+        `SELECT employee.id, CONCAT(first_name, ' ', last_name) AS employee_name FROM employee`, (err, result) => {
+            if (err) {
+                console.log(err);
+            };
+            currentEmployees = result;
+            const employeeNames = currentEmployees.map(item => item.employee_name) 
+
+            connection.query(
+                `SELECT role.id, role.title FROM role`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    currentRoles = result;
+                    const roleNames = currentRoles.map(item => item.title)
+
+                    inquirer.prompt([
+                        {
+                            name: `employee`,
+                            message: `Which employee's role do you want to update?`,
+                            type: `list`,
+                            choices: employeeNames,
+                        },
+                        {
+                            name: `newRole`,
+                            message: `Which role do you want to assign to the selected employee?`,
+                            type: `list`,
+                            choices: roleNames,
+                        },
+                    ]).then((ans) => {
+                        // get the id of the employee that the user selected
+                        for (let i = 0; i < currentEmployees.length; i++) {
+                            if (ans.employee == currentEmployees[i].employee_name){
+                                employeeId = currentEmployees[i].id
+                            };
+                        };
+                        // get the id of the new role that the user selected
+                        for (let i = 0; i < currentRoles.length; i++) {
+                            if (ans.newRole === currentRoles[i].title){
+                                roleId = currentRoles[i].id
+                            };
+                        };
+                        // update the role
+                        connection.query(
+                            `UPDATE employee 
+                             SET role_id = ?
+                             WHERE id = ?`,
+                            [roleId, employeeId],
+                            (err) => {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    console.log(`Updated employee's role :)`);
+                                }; 
+                                // go back to the main menu
+                                displayOptions();               
+                            }
+                        )
+                    })
+                }
+            )
+        }
+    );
 };
 
 displayOptions();
